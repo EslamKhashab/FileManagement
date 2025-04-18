@@ -53,19 +53,18 @@ namespace FileManagement.Business.Services.AttachmentService
 
                 var originalWebP = Path.Combine(imagePath, "original.webp");
                 await image.SaveAsWebpAsync(originalWebP);
+
                 // not so great but it works, it's better to move for background job
-                _ = Task.Run(async () =>
+
+                foreach (var size in _attachmentSettings.Sizes)
                 {
-                    foreach (var size in _attachmentSettings.Sizes)
+                    using var clone = image.Clone(x => x.Resize(new ResizeOptions
                     {
-                        using var clone = image.Clone(x => x.Resize(new ResizeOptions
-                        {
-                            Mode = ResizeMode.Max,
-                            Size = new Size(size.Value, 0)
-                        }));
-                        await clone.SaveAsWebpAsync(Path.Combine(imagePath, $"{size.Key}.webp"));
-                    }
-                });
+                        Mode = ResizeMode.Max,
+                        Size = new Size(size.Value, 0)
+                    }));
+                    await clone.SaveAsWebpAsync(Path.Combine(imagePath, $"{size.Key}.webp"));
+                }
 
                 var metadata = ExtractMetadata(file);
                 metadata.ImageId = id;
